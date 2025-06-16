@@ -1,0 +1,7 @@
+google-generativeai
+tavily-python
+duckduckgo-search
+tqdm
+python-dotenv
+langchain
+langchain-community

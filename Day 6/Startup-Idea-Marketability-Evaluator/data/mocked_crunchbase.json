@@ -1,0 +1,23 @@
+[
+    {"name": "LawBot AI", "domain": "legal tech", "funding": "$2M"},
+    {"name": "FitGenZ", "domain": "fitness", "funding": "$1.5M"},
+    {"name": "MindAI", "domain": "mental health", "funding": "$3M"},
+    {"name": "EduNinja", "domain": "edtech", "funding": "$5M"},
+    {"name": "MediScan", "domain": "healthtech", "funding": "$4.2M"},
+    {"name": "GreenGrid", "domain": "climate tech", "funding": "$7M"},
+    {"name": "FinStack", "domain": "fintech", "funding": "$12M"},
+    {"name": "AutoPilotAI", "domain": "automotive AI", "funding": "$15M"},
+    {"name": "VoiceVerse", "domain": "voice tech", "funding": "$1.8M"},
+    {"name": "CyberSentinel", "domain": "cybersecurity", "funding": "$9M"},
+    {"name": "FarmSmart", "domain": "agritech", "funding": "$6.3M"},
+    {"name": "NeuroNet", "domain": "neurotech", "funding": "$8M"},
+    {"name": "SkillFoundry", "domain": "career tech", "funding": "$2.6M"},
+    {"name": "HomeGenie", "domain": "smart home", "funding": "$3.5M"},
+    {"name": "EcoRide", "domain": "green mobility", "funding": "$11M"},
+    {"name": "PetCareX", "domain": "pet tech", "funding": "$2.2M"},
+    {"name": "FoodChainAI", "domain": "food tech", "funding": "$5.7M"},
+    {"name": "WorkBuddy", "domain": "HR tech", "funding": "$6M"},
+    {"name": "CryptoNest", "domain": "blockchain", "funding": "$14M"},
+    {"name": "Eventify", "domain": "event tech", "funding": "$3.9M"}
+  ]
+  
