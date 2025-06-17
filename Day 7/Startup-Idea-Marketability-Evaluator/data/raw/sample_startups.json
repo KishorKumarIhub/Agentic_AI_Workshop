@@ -1,0 +1,16 @@
+[
+  {
+    "name": "FinBoost",
+    "domain": "FinTech",
+    "description": "AI-driven credit scoring for small businesses",
+    "funding": "Series A",
+    "keywords": ["AI", "SME", "credit scoring"]
+  },
+  {
+    "name": "MediLens",
+    "domain": "HealthTech",
+    "description": "Remote diagnostics platform using ML",
+    "funding": "Seed",
+    "keywords": ["remote care", "ML", "health diagnostics"]
+  }
+]
