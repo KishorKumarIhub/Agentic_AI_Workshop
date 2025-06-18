@@ -1,0 +1,12 @@
+langchain
+langchain-google-genai
+langchain-community
+langgraph
+chromadb
+google-api-python-client
+streamlit
+python-dotenv
+google-generativeai
+pytrends
+py-crunchbase-api
+
