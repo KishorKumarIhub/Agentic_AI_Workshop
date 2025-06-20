@@ -1,4 +1,3 @@
-# --- Standard Library Imports ---
 import os
 import json
 import csv
@@ -6,8 +5,6 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import Dict, Any
-
-# --- LangChain & LLM Imports ---
 from langchain import LLMChain, PromptTemplate
 from langchain.agents import Tool, initialize_agent
 from langchain_community.embeddings import HuggingFaceEmbeddings
@@ -17,27 +14,15 @@ from langchain.chains import RetrievalQA
 from langchain_google_genai import ChatGoogleGenerativeAI
 import requests
 from pathlib import Path
-from fastapi.middleware.cors import CORSMiddleware
 
-
+# --- Load environment and initialize services ---
 load_dotenv()
 app = FastAPI()
-
-# Add CORS middleware to allow all origins
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0.2)
 TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
 
 # --- CSV to RAG setup ---
 def csv_document_processor(filename):
-    """Read a CSV file and convert each row into a document for vector storage."""
     filepath = Path(f'datasets/{filename}')
     if not filepath.exists():
         return []
@@ -54,14 +39,12 @@ def csv_document_processor(filename):
     return documents
 
 def initialize_vectorstore():
-    """Load all CSVs, process them, and initialize a Chroma vectorstore with HuggingFace embeddings."""
     dataset_files = ['startup_funding_2025.csv', 'competitors_landscape_2025.csv', 'startup_companies_2025.csv']
     all_documents = []
     for filename in dataset_files:
         docs = csv_document_processor(filename)
         all_documents.extend(docs)
     if all_documents:
-        # Convert dicts to Document-like objects for Chroma
         docs_for_chroma = [
             type('Document', (), {"page_content": d["page_content"], "metadata": d["metadata"]})() for d in all_documents
         ]
@@ -80,7 +63,6 @@ qa_chain = RetrievalQA.from_chain_type(llm=llm, retriever=retriever) if retrieve
 
 # --- Tavily Web Search ---
 def tavily_web_search(query):
-    """Query Tavily API for web search results (used for funding/saturation analysis)."""
     if not TAVILY_API_KEY:
         return []
     url = "https://api.tavily.com/search"
@@ -118,87 +100,7 @@ novelty_prompt = PromptTemplate(
 
 final_report_prompt = PromptTemplate(
     input_variables=["context"],
-    template="""
-Generate a comprehensive startup viability report for: {context}.
-Return the output as a JSON object in the EXACT structure and nesting as the following example. 
-Do NOT add or remove any keys. If you don't know a value, provide a plausible placeholder.
-
-Example output:
-{{
-    "trends": {{
-        "search_volume": {{
-            "overall": "High",
-            "keywords": [
-                {{"keyword": "online education India", "volume": "Very High"}},
-                ...
-            ]
-        }},
-        "growth_rate": {{
-            "overall": "High",
-            "reason": "..."
-        }},
-        "top_regions": ["Maharashtra", ...],
-        "related_terms": ["online tutoring", ...],
-        "demand_risk": {{
-            "overall": "Medium",
-            "factors": ["Intense competition...", ...]
-        }},
-        "market_potential": {{
-            "overall": "Very High",
-            "reason": "..."
-        }}
-    }},
-    "competitors": {{
-        "direct_competitors": [
-            {{"name": "EduKart", "description": "...", "benchmark_score": 75}},
-            ...
-        ],
-        "competitive_advantages": ["...", ...],
-        "market_gaps": ["...", ...],
-        "ip_risks": ["...", ...],
-        "benchmark_score": 70,
-        "competitive_intensity": "High. ..."
-    }},
-    "saturation": {{
-        "saturation_score": "Medium-High",
-        "funding_trends": ["...", ...],
-        "top_cities": ["Bangalore", ...],
-        "barriers_to_entry": ["...", ...],
-        "market_maturity": "High"
-    }},
-    "novelty": {{
-        "novelty_score": 60,
-        "differentiation_factors": ["...", ...],
-        "trend_alignment": 85,
-        "suggested_pivots": ["...", ...],
-        "innovation_level": "Medium"
-    }},
-    "final_report": {{
-        "viability_score": 72,
-        "market_opportunity": "...",
-        "key_risks": ["...", ...],
-        "recommended_strategy": {{
-            "niche_focus": "...",
-            "differentiation": "...",
-            "pricing": "...",
-            "marketing": "...",
-            "technology": "...",
-            "regulatory_compliance": "..."
-        }},
-        "potential_partners": ["...", ...],
-        "investment_requirement": {{
-            "seed_funding": "...",
-            "series_a": "..."
-        }},
-        "timeline_to_market": {{
-            "MVP launch": "...",
-            "Full-scale launch": "..."
-        }},
-        "success_probability": "..."
-    }}
-}}
-STRICTLY follow this structure and key names. Do not add or remove any keys.
-"""
+    template="""Generate a comprehensive startup viability report for: {context}. Return JSON with viability_score, market_opportunity, key_risks, recommended_strategy, potential_partners, investment_requirement, timeline_to_market, success_probability."""
 )
 
 # --- Tool Definitions ---
@@ -268,98 +170,49 @@ def safe_json_parse(text):
     except Exception:
         return {}
 
-def trend_agent(message):
-    """Run trend analysis and add results to message dict."""
-    idea = message["startup_idea"]
-    result = safe_json_parse(
-        LLMChain(llm=llm, prompt=trend_prompt).invoke({"idea": idea})["text"]
-    )
-    message["trends"] = result
-    return message
-
-def competitor_agent(message):
-    """Run competitor analysis (using RAG) and add results to message dict."""
-    idea = message["startup_idea"]
-    rag_data = qa_chain.run(f"Find competitors for {idea} startup business model") if qa_chain else "No RAG data available"
-    result = safe_json_parse(
-        LLMChain(llm=llm, prompt=competitor_prompt).invoke({"idea": idea, "rag_data": rag_data})["text"]
-    )
-    # Ensure plausible competitors and score
-    if not result.get("direct_competitors") or not isinstance(result["direct_competitors"], list) or len(result["direct_competitors"]) < 2:
-        result["direct_competitors"] = [
-            {"name": "Zoho Books", "description": "Popular Indian accounting and invoicing software with GST compliance."},
-            {"name": "Tally Solutions", "description": "Widely used accounting software in India, offering GST features."},
-            {"name": "Vyapar", "description": "Mobile-first invoicing and accounting app for Indian SMEs."}
-        ]
-    if not result.get("benchmark_score") or not isinstance(result["benchmark_score"], (int, float, str)) or str(result["benchmark_score"]).lower() in ["n/a", "unknown", "insufficient data", ""]:
-        result["benchmark_score"] = 65
-    message["competitors"] = result
-    return message
-
-def saturation_agent(message):
-    """Run market saturation analysis and add results to message dict."""
-    idea = message["startup_idea"]
-    web_funding = json.dumps(tavily_web_search(f"{idea} startup funding India"))
-    result = safe_json_parse(
-        LLMChain(llm=llm, prompt=saturation_prompt).invoke({"idea": idea, "web_funding": web_funding})["text"]
-    )
-    message["saturation"] = result
-    return message
-
-def novelty_agent(message):
-    """Run novelty/innovation scoring and add results to message dict."""
-    context = {
-        "trends": message["trends"],
-        "competitors": message["competitors"],
-        "saturation": message["saturation"]
-    }
-    result = safe_json_parse(
-        LLMChain(llm=llm, prompt=novelty_prompt).invoke({"context": json.dumps(context)})["text"]
-    )
-    message["novelty"] = result
-    return message
-
-def final_report_agent(message):
-    """Generate the final comprehensive viability report and add to message dict."""
-    context = {
-        "trends": message["trends"],
-        "competitors": message["competitors"],
-        "saturation": message["saturation"],
-        "novelty": message["novelty"]
-    }
-    result = safe_json_parse(
-        LLMChain(llm=llm, prompt=final_report_prompt).invoke({"context": json.dumps(context)})["text"]
-    )
-    message["final_report"] = result
-    return message
-
-# MCP Controller
-def mcp_controller(startup_idea):
-    """Run all analysis agents in sequence and return the full results."""
-    message = {"startup_idea": startup_idea}
-    message = trend_agent(message)
-    message = competitor_agent(message)
-    message = saturation_agent(message)
-    message = novelty_agent(message)
-    message = final_report_agent(message)
-    return message
-
-# FastAPI endpoint using MCP
 @app.post("/validate-idea")
 async def validate_idea(request: IdeaRequest):
-    print(f"/validate-idea API called with idea: {request.startup_idea}")
     try:
-        result = mcp_controller(request.startup_idea)
+        idea = request.startup_idea
+        # Step 1: Trend Analysis
+        trends = safe_json_parse(agent.tools[0].func(idea))
+        # Step 2: Competitor Analysis
+        competitors = safe_json_parse(agent.tools[1].func(idea))
+        # Ensure at least 3 plausible direct competitors and a numeric benchmark_score
+        if not competitors.get("direct_competitors") or not isinstance(competitors["direct_competitors"], list) or len(competitors["direct_competitors"]) < 2:
+            competitors["direct_competitors"] = [
+                {"name": "Zoho Books", "description": "Popular Indian accounting and invoicing software with GST compliance."},
+                {"name": "Tally Solutions", "description": "Widely used accounting software in India, offering GST features."},
+                {"name": "Vyapar", "description": "Mobile-first invoicing and accounting app for Indian SMEs."}
+            ]
+        if not competitors.get("benchmark_score") or not isinstance(competitors["benchmark_score"], (int, float, str)) or str(competitors["benchmark_score"]).lower() in ["n/a", "unknown", "insufficient data", ""]:
+            competitors["benchmark_score"] = 65
+        # Step 3: Saturation Analysis
+        saturation = safe_json_parse(agent.tools[2].func(idea))
+        # Step 4: Novelty Scoring
+        novelty = safe_json_parse(agent.tools[3].func({
+            "trends": trends,
+            "competitors": competitors,
+            "saturation": saturation
+        }))
+        # Step 5: Final Report
+        final_report = safe_json_parse(agent.tools[4].func({
+            "trends": trends,
+            "competitors": competitors,
+            "saturation": saturation,
+            "novelty": novelty
+        }))
+        # Compose response
         return {
             "success": True,
             "data": {
-                "startup_idea": request.startup_idea,
+                "startup_idea": idea,
                 "analysis_results": {
-                    "trends": result["trends"],
-                    "competitors": result["competitors"],
-                    "saturation": result["saturation"],
-                    "novelty": result["novelty"],
-                    "final_report": result["final_report"]
+                    "trends": trends,
+                    "competitors": competitors,
+                    "saturation": saturation,
+                    "novelty": novelty,
+                    "final_report": final_report
                 }
             }
         }
