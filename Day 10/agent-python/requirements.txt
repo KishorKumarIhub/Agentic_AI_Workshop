@@ -1,0 +1,24 @@
+# Core Framework
+fastapi==0.110.0
+uvicorn==0.29.0
+
+# Your Existing Stack (preserved versions)
+streamlit>=1.32.0
+langchain>=0.1.13
+langchain-google-genai>=0.1.1
+langgraph>=0.0.33
+chromadb>=0.4.24
+google-generativeai>=0.3.2
+langchain-core>=0.1.33
+langchain-community>=0.0.29
+pypdf>=4.1.0
+python-dotenv>=1.0.1
+tiktoken>=0.6.0
+
+# Additional Dependencies for Current Task
+tavily-python>=0.3.3
+sentence-transformers>=2.7.0
+huggingface-hub>=0.22.2
+pydantic>=2.6.4
+pytrends>=4.9.2
+pandas>=2.0.0
