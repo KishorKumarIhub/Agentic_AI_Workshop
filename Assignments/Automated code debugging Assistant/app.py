@@ -1,15 +1,15 @@
 import streamlit as st
 from crewai import Agent, Task, Crew, Process, LLM
-# from langchain_community.llms import Groq
 from langchain_google_genai import ChatGoogleGenerativeAI
 import os
 import ast
+from dotenv import load_dotenv
 
 # ===== 100% ONNX-FREE SOLUTION =====
 # No chromadb, no CodeInterpreterTool, no ONNX runtime
 
-# Set API keys (replace with yours)
-os.environ["GOOGLE_API_KEY"] = "AIzaSyAZtErluhP9-PX-Wd29D_QDWRG7V3xj6io"
+# Load environment variables
+load_dotenv()
 
 # Custom Python Analyzer (No ONNX)
 def analyze_python_code(code: str) -> str:
@@ -42,7 +42,7 @@ def analyze_python_code(code: str) -> str:
 # Initialize LLM (Groq or Gemini)
 # llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", google_api_key=os.getenv("GOOGLE_API_KEY") , temperature=0.1)  # or ChatGoogleGenerativeAI(model="gemini-pro")
 llm = LLM(
-    api_key="AIzaSyAZtErluhP9-PX-Wd29D_QDWRG7V3xj6io",
+    api_key=os.getenv("GOOGLE_API_KEY"),
     model="gemini/gemini-2.5-flash"  # Must include provider prefix
 )
 # ===== Agents =====
