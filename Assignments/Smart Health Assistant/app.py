@@ -2,10 +2,86 @@
 import streamlit as st
 from autogen import AssistantAgent, UserProxyAgent, GroupChat, GroupChatManager
 import google.generativeai as genai
+from streamlit.components.v1 import html
 
 # === Streamlit UI ===
-st.set_page_config(page_title="Smart Health Assistant", layout="wide")
-st.title("🤖 Smart Health Assistant")
+# Add a gradient background using custom CSS
+st.markdown(
+    """
+    <style>
+    body {
+        background: linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%) !important;
+    }
+    .main {
+        background: linear-gradient(135deg, #f8fafc 0%, #e0eafc 100%) !important;
+        border-radius: 18px;
+        padding: 2rem 2.5rem 2rem 2.5rem;
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.12);
+    }
+    .stButton>button {
+        background: linear-gradient(90deg, #43cea2 0%, #185a9d 100%);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        padding: 0.6em 2em;
+        transition: 0.2s;
+    }
+    .stButton>button:hover {
+        background: linear-gradient(90deg, #185a9d 0%, #43cea2 100%);
+        color: #fff;
+        box-shadow: 0 2px 8px rgba(67,206,162,0.15);
+    }
+    .stTextInput>div>div>input {
+        background: #f0f4f8;
+        border-radius: 6px;
+    }
+    .stNumberInput>div>div>input {
+        background: #f0f4f8;
+        border-radius: 6px;
+    }
+    .stSelectbox>div>div>div>div {
+        background: #f0f4f8;
+        border-radius: 6px;
+    }
+    .stSidebar {
+        background: linear-gradient(135deg, #43cea2 0%, #185a9d 100%) !important;
+        color: #fff !important;
+    }
+    .stSidebar h1, .stSidebar h2, .stSidebar h3, .stSidebar h4, .stSidebar h5, .stSidebar h6, .stSidebar p, .stSidebar label {
+        color: #fff !important;
+    }
+    .stExpanderHeader {
+        background: linear-gradient(90deg, #43cea2 0%, #185a9d 100%) !important;
+        color: #fff !important;
+        border-radius: 8px 8px 0 0;
+    }
+    .stDownloadButton>button {
+        background: linear-gradient(90deg, #43cea2 0%, #185a9d 100%);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        padding: 0.6em 2em;
+        transition: 0.2s;
+    }
+    .stDownloadButton>button:hover {
+        background: linear-gradient(90deg, #185a9d 0%, #43cea2 100%);
+        color: #fff;
+        box-shadow: 0 2px 8px rgba(67,206,162,0.15);
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+st.markdown(
+    '<div style="display:flex;align-items:center;gap:1rem;margin-bottom:0.5rem;">'
+    '<img src="https://img.icons8.com/color/96/000000/health-checkup.png" width="56"/>'
+    '<h1 style="margin:0;font-size:2.6rem;font-weight:800;background:linear-gradient(90deg,#43cea2,#185a9d);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Smart Health Assistant</h1>'
+    '</div>',
+    unsafe_allow_html=True
+)
 
 with st.sidebar:
     st.header("Configuration")
@@ -38,6 +114,11 @@ def calculate_bmi(weight_kg: float, height_cm: float) -> float:
 
 # === Health Form ===
 with st.form("health_form"):
+    st.markdown('<div style="background:linear-gradient(90deg,#43cea2,#185a9d);padding:1.2rem 1.5rem 0.5rem 1.5rem;border-radius:12px 12px 0 0;box-shadow:0 2px 8px rgba(67,206,162,0.10);margin-bottom:0;">'
+                '<h3 style="margin:0;color:#fff;font-weight:700;letter-spacing:0.5px;">Enter Your Health Details</h3>'
+                '</div>'
+                '<div style="background:#f8fafc;padding:1.5rem 1.5rem 1.5rem 1.5rem;border-radius:0 0 12px 12px;box-shadow:0 2px 8px rgba(67,206,162,0.10);margin-bottom:1.5rem;">',
+                unsafe_allow_html=True)
     col1, col2 = st.columns(2)
     with col1:
         weight = st.number_input("Weight (kg)", min_value=30.0, max_value=200.0, value=70.0)
@@ -48,6 +129,7 @@ with st.form("health_form"):
         dietary_preference = st.selectbox("Dietary Preference", ["Veg", "Non-Veg", "Vegan"])
         st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
         submit_btn = st.form_submit_button("Generate Health Plan")
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # === Agent Initialization ===
 def init_agents(api_key):
@@ -162,7 +244,10 @@ if st.session_state.conversation:
     st.subheader("🌟 Your Complete Health Plan")
 
     if st.session_state.final_plan:
-        st.markdown(st.session_state.final_plan)
+        st.markdown(
+            f'<div style="background:linear-gradient(90deg,#43cea2,#185a9d);padding:1.2rem 1.5rem;border-radius:12px;color:#fff;font-size:1.1rem;">{st.session_state.final_plan}</div>',
+            unsafe_allow_html=True
+        )
         st.download_button(
             label="Download Health Plan",
             data=st.session_state.final_plan,
@@ -174,10 +259,12 @@ if st.session_state.conversation:
 
 elif not submit_btn:
     st.divider()
-    st.info("""
-    **Instructions:**
-    1. Enter your Gemini API key in the sidebar
-    2. Fill in your health details
-    3. Click "Generate Health Plan"
-    4. View your personalized recommendations
-    """)
+    st.info(
+        """
+        **Instructions:**
+        1. Enter your Gemini API key in the sidebar
+        2. Fill in your health details
+        3. Click "Generate Health Plan"
+        4. View your personalized recommendations
+        """
+    )

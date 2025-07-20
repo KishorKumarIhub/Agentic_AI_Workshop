@@ -82,8 +82,8 @@ st.caption("Simulated conversation between Content Creator and Content Critic ag
 with st.sidebar:
     st.header("Configuration")
     topic = st.text_input("Discussion Topic", "Agentic AI", help="Enter the topic you want to create content about")
-    turns = st.slider("Conversation Turns", min_value=3, max_value=7, value=3, step=2, 
-                     help="Number of back-and-forth exchanges between agents")
+    turns = st.slider("Conversation Turns", min_value=3, max_value=7, value=3, step=1, 
+                 help="Number of back-and-forth exchanges between agents")
     
     st.markdown("---")
     st.markdown("### How it works:")

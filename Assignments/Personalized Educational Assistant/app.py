@@ -178,69 +178,136 @@ def generate_learning_path(topic: str, level: str):
 
 # Streamlit UI
 def main():
-    st.set_page_config(page_title="Personalized Learning Assistant", page_icon="🎓", layout="wide")
-    
-    st.title("🎓 Personalized Learning Assistant")
-    st.markdown("Generate comprehensive learning materials, quizzes, and project ideas for any topic!")
+    # Add custom CSS for gradients and beautiful UI
+    st.markdown(
+        """
+        <style>
+        body {
+            background: linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%) !important;
+        }
+        .stApp {
+            background: linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%) !important;
+        }
+        .gradient-header {
+            background: linear-gradient(90deg, #6366f1 0%, #60a5fa 100%);
+            color: white;
+            padding: 2rem 1rem 1rem 1rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 4px 24px 0 rgba(99,102,241,0.15);
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        .gradient-section {
+            background: linear-gradient(90deg, #f1f5f9 0%, #e0e7ff 100%);
+            border-radius: 1rem;
+            padding: 1.5rem 1rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 12px 0 rgba(99,102,241,0.07);
+        }
+        .tab-content {
+            background: linear-gradient(90deg, #f1f5f9 0%, #e0e7ff 100%);
+            border-radius: 1rem;
+            padding: 1.5rem 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .stButton>button {
+            background: linear-gradient(90deg, #6366f1 0%, #60a5fa 100%) !important;
+            color: white !important;
+            border: none !important;
+            border-radius: 0.5rem !important;
+            font-weight: 600 !important;
+            box-shadow: 0 2px 8px 0 rgba(99,102,241,0.10);
+        }
+        .stTextInput>div>div>input {
+            background: #f1f5f9 !important;
+            border-radius: 0.5rem !important;
+        }
+        .stSelectbox>div>div>div>div {
+            background: #f1f5f9 !important;
+            border-radius: 0.5rem !important;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        """
+        <div class="gradient-header">
+            <h1 style="margin-bottom: 0.5rem; font-size: 2.8rem;">🎓 Personalized Learning Assistant</h1>
+            <p style="font-size: 1.2rem; margin-bottom: 0;">Generate comprehensive learning materials, quizzes, and project ideas for any topic!</p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
     st.markdown("---")
-    
+
     # Check for API keys
     if not GEMINI_API_KEY:
         st.error("⚠️ Please set your GEMINI_API_KEY in the environment variables.")
         st.stop()
-    
+
     if not SERPER_API_KEY:
         st.error("⚠️ Please set your SERPER_API_KEY in the environment variables.")
         st.stop()
-    
+
     col1, col2 = st.columns(2)
-    
+
     with col1:
+        st.markdown('<div class="gradient-section">', unsafe_allow_html=True)
         topic = st.text_input("📚 Enter your learning topic:", placeholder="e.g., Machine Learning, Python, Data Science")
-    
+        st.markdown('</div>', unsafe_allow_html=True)
+
     with col2:
+        st.markdown('<div class="gradient-section">', unsafe_allow_html=True)
         level = st.selectbox("📊 Select your skill level:", ["Beginner", "Intermediate", "Advanced"])
-    
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    st.markdown("<div style='height: 0.5rem'></div>", unsafe_allow_html=True)
+
     if st.button("🚀 Generate Learning Path", type="primary"):
         if not topic.strip():
             st.error("Please enter a topic to learn about.")
             return
-        
+
         with st.spinner("🔍 Creating your personalized learning path..."):
             result = generate_learning_path(topic, level)
-            
+
             if result:
                 st.success("✅ Learning path generated successfully!")
                 st.markdown("---")
-                
+
                 # Display results in tabs
                 tab1, tab2, tab3 = st.tabs(["📚 Learning Materials", "📝 Quiz", "🚀 Project Ideas"])
-                
+
                 with tab1:
+                    st.markdown('<div class="tab-content">', unsafe_allow_html=True)
                     st.subheader("📚 Learning Materials")
-                    
+
                     learning_materials = result.get("learning_materials", {})
-                    
+
                     if learning_materials.get("videos"):
                         st.markdown("### 🎥 Videos")
                         for video in learning_materials["videos"]:
                             st.write(f"• {video}")
-                    
+
                     if learning_materials.get("articles"):
                         st.markdown("### 📄 Articles")
                         for article in learning_materials["articles"]:
                             st.write(f"• {article}")
-                    
+
                     if learning_materials.get("exercises"):
                         st.markdown("### 💪 Exercises")
                         for exercise in learning_materials["exercises"]:
                             st.write(f"• {exercise}")
-                
+                    st.markdown('</div>', unsafe_allow_html=True)
+
                 with tab2:
+                    st.markdown('<div class="tab-content">', unsafe_allow_html=True)
                     st.subheader("📝 Quiz Questions")
-                    
+
                     quiz_questions = result.get("quiz_questions", [])
-                    
+
                     if quiz_questions:
                         for i, q in enumerate(quiz_questions, 1):
                             st.markdown(f"**Question {i}: {q['question']}**")
@@ -250,12 +317,14 @@ def main():
                             st.markdown("---")
                     else:
                         st.write("No quiz questions generated.")
-                
+                    st.markdown('</div>', unsafe_allow_html=True)
+
                 with tab3:
+                    st.markdown('<div class="tab-content">', unsafe_allow_html=True)
                     st.subheader("🚀 Project Ideas")
-                    
+
                     project_ideas = result.get("project_ideas", [])
-                    
+
                     if project_ideas:
                         for i, project in enumerate(project_ideas, 1):
                             st.markdown(f"### Project {i}: {project['title']}")
@@ -264,16 +333,17 @@ def main():
                             st.markdown("---")
                     else:
                         st.write("No project ideas generated.")
-                
+                    st.markdown('</div>', unsafe_allow_html=True)
+
                 # Optional: Show raw crew result
                 if result.get("raw_result"):
                     with st.expander("🔍 View Raw AI Output"):
                         st.text(str(result["raw_result"]))
-    
+
     st.markdown("---")
     st.markdown(
         """
-        <div style='text-align: center; color: #666;'>
+        <div style='text-align: center; color: #666; margin-top: 2rem;'>
             <p>🤖 Powered by Google Gemini AI | 🔍 Web Search via Serper API</p>
             <p>💡 This tool generates learning materials, quizzes, and project ideas for any topic</p>
         </div>

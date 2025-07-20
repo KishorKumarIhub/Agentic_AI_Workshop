@@ -1,3 +1,4 @@
 autogen
 streamlit
 python-dotenv
+ag2[gemini]

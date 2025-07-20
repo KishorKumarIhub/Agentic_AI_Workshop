@@ -1,8 +1,10 @@
-crewai==0.28.9rc2
-langchain==0.1.16
-langchain-google-genai==0.0.6
-google-generativeai==0.3.2
+
+crewai>=0.98.0
+
+streamlit>=1.35.0
+
 python-dotenv>=1.0.1
-pydantic>=2.4.2
-langsmith==0.1.18
-streamlit
+
+google-generativeai>=0.3.0
+
+tiktoken>=0.7.0
