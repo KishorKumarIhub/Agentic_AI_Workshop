@@ -71,14 +71,59 @@ manager = Agent(
 )
 
 # ===== Streamlit UI =====
-st.title("🔍 Python Code Reviewer (No ONNX)")
-code_input = st.text_area("Paste Python code:", height=300)
+# Sidebar with app info
+st.sidebar.title("🤖 Python Code Debugging Assistant")
+st.sidebar.markdown("""
+Welcome to the **Python Code Reviewer**! Paste your Python code, analyze for issues, and get instant fixes—all without code execution.
 
-if st.button("Analyze & Fix"):
+- **Static Analysis** (AST-based)
+- **AI-powered Fixes**
+- No ONNX, No Code Execution
+
+---
+**Instructions:**
+1. Paste your Python code in the main area.
+2. Click **Analyze & Fix**.
+3. Review the results below.
+""")
+
+# Main UI
+st.markdown("""
+<style>
+.big-title { font-size:2.5rem; font-weight:700; color:#4F8BF9; }
+.section-title { font-size:1.3rem; font-weight:600; margin-top:2rem; }
+.code-area { border-radius: 8px; border: 1px solid #e0e0e0; background: #f9f9f9; }
+.result-box { background: #f6f8fa; border-radius: 8px; padding: 1.2em; border: 1px solid #e0e0e0; }
+.footer { color: #888; font-size: 0.95em; margin-top: 2em; text-align: center; }
+</style>
+""", unsafe_allow_html=True)
+
+st.markdown('<div class="big-title">🔍 Python Code Reviewer <span style="font-size:1.2rem; color:#888;">(No ONNX)</span></div>', unsafe_allow_html=True)
+st.markdown("<hr>", unsafe_allow_html=True)
+
+col1, col2 = st.columns([2, 1])
+with col1:
+    st.markdown('<div class="section-title">Paste your Python code below:</div>', unsafe_allow_html=True)
+    code_input = st.text_area("", height=300, key="code_input", placeholder="Paste your Python code here...", help="Paste the code you want to analyze and fix.")
+with col2:
+    st.markdown('<div class="section-title">How it works:</div>', unsafe_allow_html=True)
+    st.markdown("""
+    1. **Static Analysis**: Checks for syntax and common issues.
+    2. **AI Fixes**: Suggests and applies code corrections.
+    3. **No Execution**: Your code is never run.
+    """)
+    st.markdown("---")
+    st.markdown("<span style='color:#4F8BF9'>Powered by Gemini & CrewAI</span>", unsafe_allow_html=True)
+
+st.markdown("<hr>", unsafe_allow_html=True)
+
+analyze_btn = st.button("✨ Analyze & Fix", use_container_width=True)
+
+if analyze_btn:
     if not code_input.strip():
-        st.warning("Please enter Python code.")
+        st.warning("⚠️ Please enter Python code.")
     else:
-        with st.spinner("Analyzing..."):
+        with st.spinner("Analyzing your code, please wait..."):
             # Task 1: Static Analysis
             analysis_task = Task(
                 description=f"Analyze this code:\n```python\n{code_input}\n```",
@@ -101,9 +146,9 @@ if st.button("Analyze & Fix"):
                 verbose=True,
                 process=Process.sequential
             )
-            
             result = crew.kickoff()
-            
-            # Display Results
-            st.subheader("🔧 Fixed Code")
-            st.code(result, language="python")
+
+        st.markdown('<div class="section-title">🔧 Fixed Code</div>', unsafe_allow_html=True)
+        st.code(result, language="python")
+        st.success("✅ Analysis and correction complete!")
+
