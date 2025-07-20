@@ -17,18 +17,36 @@ model = genai.GenerativeModel("models/gemini-1.5-flash")
 st.set_page_config(page_title="🧾 Bill Management Agent", layout="wide")
 st.markdown("""
     <style>
-    .big-font { font-size: 22px !important; font-weight: 600; }
-    .agent-box { border-radius: 15px; background-color: #f1f1f1; color: black; padding: 15px; margin: 10px 0; }
-    .user { background-color: #e0f7fa; color: black; padding: 12px; border-radius: 10px; margin-bottom: 10px; }
-    .agent { background-color: #f3e5f5; color: black; padding: 12px; border-radius: 10px; margin-bottom: 10px; }
+    .main-title { font-size: 2.5rem !important; font-weight: 800; color: #4F46E5; margin-bottom: 0.5rem; }
+    .subtitle { font-size: 1.2rem !important; color: #64748B; margin-bottom: 2rem; }
+    .section-card { border-radius: 18px; background: #fff; box-shadow: 0 4px 24px rgba(80,80,120,0.08); padding: 2rem 2.5rem; margin-bottom: 2rem; }
+    .category-badge { display: inline-block; padding: 0.3em 0.9em; border-radius: 12px; font-size: 1em; font-weight: 600; margin-right: 0.5em; margin-bottom: 0.5em; }
+    .Groceries { background: #DCFCE7; color: #166534; }
+    .Dining { background: #FEF9C3; color: #92400E; }
+    .Utilities { background: #E0E7FF; color: #3730A3; }
+    .Shopping { background: #FCE7F3; color: #9D174D; }
+    .Entertainment { background: #FFE4E6; color: #BE185D; }
+    .Others { background: #F3F4F6; color: #374151; }
+    .summary-box { border-radius: 15px; background: linear-gradient(90deg, #6366F1 0%, #A5B4FC 100%); color: white; padding: 1.5rem; font-size: 1.1rem; font-weight: 500; margin-bottom: 2rem; box-shadow: 0 2px 12px rgba(99,102,241,0.10); }
+    .chat-log-title { font-size: 1.3rem; font-weight: 700; color: #4F46E5; margin-bottom: 1rem; }
+    .user { background: #E0F2FE; color: #0369A1; padding: 1rem; border-radius: 12px; margin-bottom: 0.7rem; box-shadow: 0 1px 4px rgba(14,165,233,0.08); }
+    .agent { background: #F3E8FF; color: #7C3AED; padding: 1rem; border-radius: 12px; margin-bottom: 0.7rem; box-shadow: 0 1px 4px rgba(168,85,247,0.08); }
+    .divider { border-top: 2px solid #E5E7EB; margin: 2rem 0; }
     </style>
 """, unsafe_allow_html=True)
 
-st.title("💼 AI Bill Management Agent")
-st.markdown("Upload a bill and let AI categorize and analyze your expenses.")
+# --- HEADER ---
+st.markdown("<div class='main-title'>💼 AI Bill Management Agent</div>", unsafe_allow_html=True)
+st.markdown("<div class='subtitle'>Upload a bill and let AI categorize and analyze your expenses in style.</div>", unsafe_allow_html=True)
 
-# --- Upload File ---
-uploaded_file = st.file_uploader("📤 Upload your bill", type=["jpg", "jpeg", "png"])
+# --- LAYOUT ---
+col1, col2 = st.columns([1, 2])
+
+with col1:
+    st.markdown("<div class='section-card'>", unsafe_allow_html=True)
+    st.markdown("### 📤 Upload your bill")
+    uploaded_file = st.file_uploader("", type=["jpg", "jpeg", "png"])
+    st.markdown("</div>", unsafe_allow_html=True)
 
 chat_log = []
 
@@ -41,7 +59,7 @@ def process_bill_with_gemini(image_file):
     image = Image.open(tmp_path)
 
     response = model.generate_content([
-        "Extract all expenses from this bill image. Group them into categories: Groceries, Dining, Utilities, Shopping, Entertainment, Others. Return as JSON format like {category: [{item, cost}]}.",
+        "Extract all expenses from this bill image. Group them into categories: Groceries, Dining, Utilities, Shopping, Entertainment, Others. Return as JSON format like {category: [{item, cost}]}",
         image
     ])
 
@@ -87,53 +105,58 @@ group_chat = GroupChat(agents=[user_proxy, bill_processing_agent, summary_agent]
 manager = GroupChatManager(groupchat=group_chat)
 
 # --- Main Execution Flow ---
-if uploaded_file:
-    st.success("✅ File uploaded. Processing...")
+with col2:
+    if uploaded_file:
+        st.success("✅ File uploaded. Processing...")
+        with st.spinner("🔍 Extracting expenses..."):
+            categorized_data, raw_response = process_bill_with_gemini(uploaded_file)
 
-    with st.spinner("🔍 Extracting expenses..."):
-        categorized_data, raw_response = process_bill_with_gemini(uploaded_file)
+        if not categorized_data:
+            st.error("❌ Failed to extract expenses.")
+            st.text(raw_response)
+        else:
+            # 1. User → Group Manager
+            user_proxy.send("Bill uploaded", manager)
+            chat_log.append(("UserProxy → chat_manager", "Bill uploaded"))
 
-    if not categorized_data:
-        st.error("❌ Failed to extract expenses.")
-        st.text(raw_response)
-    else:
-        # 1. User → Group Manager
-        user_proxy.send("Bill uploaded", manager)
-        chat_log.append(("UserProxy → chat_manager", "Bill uploaded"))
+            # 2. User → BillProcessingAgent
+            user_proxy.send(f"Categorized expenses: {categorized_data}", bill_processing_agent)
+            chat_log.append(("UserProxy → BillProcessingAgent", json.dumps(categorized_data, indent=2)))
 
-        # 2. User → BillProcessingAgent
-        user_proxy.send(f"Categorized expenses: {categorized_data}", bill_processing_agent)
-        chat_log.append(("UserProxy → BillProcessingAgent", json.dumps(categorized_data, indent=2)))
+            # 3. Simulate BillProcessingAgent response
+            bp_response = "Categorization complete. Expenses sorted into available categories."
+            chat_log.append(("BillProcessingAgent", bp_response))
 
-        # 3. Simulate BillProcessingAgent response
-        bp_response = "Categorization complete. Expenses sorted into available categories."
-        chat_log.append(("BillProcessingAgent", bp_response))
+            # 4. User → ExpenseSummarizationAgent
+            user_proxy.send("Summarize this data", summary_agent)
+            chat_log.append(("UserProxy → ExpenseSummarizationAgent", "Summarize this data"))
 
-        # 4. User → ExpenseSummarizationAgent
-        user_proxy.send("Summarize this data", summary_agent)
-        chat_log.append(("UserProxy → ExpenseSummarizationAgent", "Summarize this data"))
+            # 5. Generate and simulate response
+            with st.spinner("📊 Generating spending summary..."):
+                summary = summarize_expenses_with_gemini(categorized_data)
 
-        # 5. Generate and simulate response
-        with st.spinner("📊 Generating spending summary..."):
-            summary = summarize_expenses_with_gemini(categorized_data)
+            chat_log.append(("ExpenseSummarizationAgent", summary))
 
-        chat_log.append(("ExpenseSummarizationAgent", summary))
+            # --- Display Categorized Expenses ---
+            st.markdown("<div class='section-card'>", unsafe_allow_html=True)
+            st.markdown("## 📂 Categorized Expenses")
+            for category, items in categorized_data.items():
+                if items:
+                    st.markdown(f"<span class='category-badge {category}'>{category}</span>", unsafe_allow_html=True)
+                    for i in items:
+                        st.markdown(f"- <b>{i['item']}</b>: ₹{i['cost']}", unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
 
-        # --- Display Categorized Expenses ---
-        st.markdown("## 📂 Categorized Expenses")
-        for category, items in categorized_data.items():
-            if items:
-                st.markdown(f"### 🗂️ {category}")
-                for i in items:
-                    st.markdown(f"- **{i['item']}**: ₹{i['cost']}")
+            st.markdown("<div class='section-card'>", unsafe_allow_html=True)
+            st.markdown("## 📋 Spending Summary")
+            st.markdown(f"<div class='summary-box'>{summary}</div>", unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
 
-        st.markdown("---")
-        st.markdown("## 📋 Spending Summary")
-        st.markdown(f"<div class='agent-box'>{summary}</div>", unsafe_allow_html=True)
-
-        # --- Agent Chat Logs ---
-        st.markdown("---")
-        st.markdown("## 💬 Agent Chat Logs")
-        for sender, message in chat_log:
-            style = "user" if "UserProxy" in sender else "agent"
-            st.markdown(f"<div class='{style}'><strong>{sender}</strong><br>{message}</div>", unsafe_allow_html=True)
+            # --- Agent Chat Logs ---
+            st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
+            st.markdown("<div class='section-card'>", unsafe_allow_html=True)
+            st.markdown("<div class='chat-log-title'>💬 Agent Chat Logs</div>", unsafe_allow_html=True)
+            for sender, message in chat_log:
+                style = "user" if "UserProxy" in sender else "agent"
+                st.markdown(f"<div class='{style}'><strong>{sender}</strong><br>{message}</div>", unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
