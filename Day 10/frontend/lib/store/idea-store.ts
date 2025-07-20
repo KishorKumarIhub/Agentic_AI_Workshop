@@ -20,17 +20,16 @@ export const useIdeaStore = create<IdeaState>((set, get) => ({
 
       const response = await apiClient.validateIdea(user.id, { title: idea })
 
-      if (response && response.idea && response.idea.evaluation.success) {
+      if (response && response.idea && response.idea.evaluation && response.idea.evaluation.analysis_results) {
         const { idea: ideaData } = response
-        const analysisData = ideaData.evaluation.data
 
         // Create new analysis object matching our IdeaAnalysis interface
         const newAnalysis: IdeaAnalysis = {
-          id: ideaData._id,
-          userId: ideaData.user,
-          startup_idea: analysisData.startup_idea,
-          analysis_results: analysisData.analysis_results,
-          createdAt: new Date(ideaData.createdAt),
+          _id: ideaData._id,
+          user: ideaData.user,
+          title: ideaData.title,
+          evaluation: ideaData.evaluation,
+          createdAt: ideaData.createdAt,
         }
 
         set((state) => ({
@@ -64,11 +63,11 @@ export const useIdeaStore = create<IdeaState>((set, get) => ({
 
       if (response && Array.isArray(response)) {
         const analyses: IdeaAnalysis[] = response.map((item: UserIdea) => ({
-          id: item._id,
-          userId: item.user,
-          startup_idea: item.evaluation.data.startup_idea,
-          analysis_results: item.evaluation.data.analysis_results,
-          createdAt: new Date(item.createdAt),
+          _id: item._id,
+          user: item.user,
+          title: item.title,
+          evaluation: item.evaluation,
+          createdAt: item.createdAt,
         }))
 
         set({ analyses })
@@ -84,11 +83,11 @@ export const useIdeaStore = create<IdeaState>((set, get) => ({
 
       if (response) {
         const analysis: IdeaAnalysis = {
-          id: response._id,
-          userId: response.user,
-          startup_idea: response.evaluation.data.startup_idea,
-          analysis_results: response.evaluation.data.analysis_results,
-          createdAt: new Date(response.createdAt),
+          _id: response._id,
+          user: response.user,
+          title: response.title,
+          evaluation: response.evaluation,
+          createdAt: response.createdAt,
         }
 
         set({ currentAnalysis: analysis })

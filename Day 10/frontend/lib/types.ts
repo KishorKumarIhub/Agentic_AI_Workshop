@@ -7,82 +7,88 @@ export interface User {
 }
 
 export interface IdeaAnalysis {
-  id: string
-  userId: string
-  startup_idea: string
-  analysis_results: {
-    trends: {
-      search_volume: {
-        keywords: string[]
-        level: string
-        notes: string
+  _id: string
+  user: string
+  title: string
+  evaluation: {
+    analysis_results: {
+      trends: {
+        search_volume: {
+          overall: string
+          keywords: Array<{
+            keyword: string
+            volume: string
+          }>
+        }
+        growth_rate: {
+          overall: string
+          factors: string[]
+        }
+        top_regions: string[]
+        related_terms: string[]
+        demand_risk: {
+          overall: string
+          factors: string[]
+        }
+        market_potential: {
+          overall: string
+          segments: Array<{
+            segment: string
+            potential: string
+          }>
+          notes: string
+        }
       }
-      growth_rate: {
-        rate: string
-        notes: string
-      }
-      top_regions: string[]
-      related_terms: string[]
-      demand_risk: {
-        level: string
-        factors: string[]
-      }
-      market_potential: {
-        level: string
-        notes: string
-      }
-    }
-    competitors: {
-      direct_competitors: Array<{
-        name: string
-        description: string
+      competitors: {
+        direct_competitors: Array<{
+          name: string
+          description: string
+          benchmark_score: number
+        }>
+        competitive_advantages: string[]
+        market_gaps: string[]
+        ip_risks: string[]
         benchmark_score: number
-      }>
-      competitive_advantages: string[]
-      market_gaps: string[]
-      ip_risks: string[]
-      benchmark_score: number
-      competitive_intensity: string
-    }
-    saturation: {
-      saturation_score: string
-      funding_trends: string[]
-      top_cities: string[]
-      barriers_to_entry: string[]
-      market_maturity: string
-    }
-    novelty: {
-      novelty_score: number
-      differentiation_factors: string[]
-      trend_alignment: string
-      suggested_pivots: string[]
-      innovation_level: string
-    }
-    final_report: {
-      viability_score: number
-      market_opportunity: string
-      key_risks: string[]
-      recommended_strategy: {
-        market_segmentation: string
-        product_differentiation: string
-        pricing_strategy: string
-        marketing_and_sales: string
-        customer_support: string
-        technology_stack: string
+        competitive_intensity: string
       }
-      potential_partners: string[]
-      investment_requirement: {
-        seed_funding: string
-        series_a: string
+      saturation: {
+        saturation_score: string
+        funding_trends: string[]
+        top_cities: string[]
+        barriers_to_entry: string[]
+        market_maturity: string
       }
-      timeline_to_market: {
-        mvp: string
-        full_product_launch: string
+      novelty: {
+        novelty_score: number
+        differentiation_factors: string[]
+        trend_alignment: number
+        suggested_pivots: Array<{
+          pivot: string
+          description: string
+        }>
+        innovation_level: string
       }
-      success_probability: string
+      final_report: {
+        viability_score: number
+        market_opportunity: string
+        key_risks: string[]
+        recommended_strategy: {
+          niche_focus: string
+          unique_value_proposition: string
+          strategic_partnerships: string
+          affordable_pricing: string
+          strong_marketing: string
+          technology_scalability: string
+          regulatory_compliance: string
+        }
+        potential_partners: string[]
+        investment_requirement: string
+        timeline_to_market: string
+        success_probability: string | number | object
+      }
     }
   }
-  createdAt: Date
+  createdAt: string
 }
 
 export interface AuthState {

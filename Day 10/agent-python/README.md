@@ -27,6 +27,7 @@ A FastAPI application that evaluates the marketability and viability of startup 
    - Create a `.env` file in the root directory with:
      ```env
      TAVILY_API_KEY=your_tavily_api_key
+     GOOGLE_API_KEY=your_gemini_key
      ```
    - (Optional) Configure any other required environment variables for LLM providers.
 4. **Datasets**

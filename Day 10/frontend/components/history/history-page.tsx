@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { ArrowLeft, Calendar, TrendingUp, Search, Filter, BarChart3, Clock } from "lucide-react"
+import { ArrowLeft, Calendar, TrendingUp, Search, Filter, BarChart3, Clock, Eye, RefreshCw } from "lucide-react"
 import Link from "next/link"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { HistoryStats } from "./history-stats"
@@ -16,16 +16,20 @@ export function HistoryPage() {
   const { user } = useAuthStore()
   const { analyses, fetchUserAnalyses, setCurrentAnalysis } = useIdeaStore()
   const [isLoading, setIsLoading] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [sortBy, setSortBy] = useState<"date" | "viability" | "novelty">("date")
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const loadAnalyses = async () => {
       setIsLoading(true)
+      setError(null)
       try {
         await fetchUserAnalyses()
       } catch (error) {
         console.error("Failed to load analyses:", error)
+        setError("Failed to load your analysis history. Please try again.")
       } finally {
         setIsLoading(false)
       }
@@ -36,36 +40,74 @@ export function HistoryPage() {
     }
   }, [user, fetchUserAnalyses])
 
-  const handleViewReport = (analysis: any) => {
-   
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    setError(null)
+    try {
+      await fetchUserAnalyses()
+    } catch (error) {
+      console.error("Failed to refresh analyses:", error)
+      setError("Failed to refresh data. Please try again.")
+    } finally {
+      setIsRefreshing(false)
+    }
+  }
 
+  const handleViewReport = (analysis: any) => {
     setCurrentAnalysis(analysis)
   }
 
-  // Filter and sort analyses
+  // Filter and sort analyses with error handling
   const filteredAndSortedAnalyses = analyses
-    .filter((analysis) => analysis.startup_idea.toLowerCase().includes(searchTerm.toLowerCase()))
+    .filter((analysis) => {
+      if (!analysis.title) return false
+      return analysis.title.toLowerCase().includes(searchTerm.toLowerCase())
+    })
     .sort((a, b) => {
-      switch (sortBy) {
-        case "date":
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        case "viability":
-          return b.analysis_results.final_report.viability_score - a.analysis_results.final_report.viability_score
-        case "novelty":
-          return b.analysis_results.novelty.novelty_score - a.analysis_results.novelty.novelty_score
-        default:
-          return 0
+      try {
+        switch (sortBy) {
+          case "date":
+            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          case "viability":
+            const scoreA = a.evaluation.analysis_results.final_report.viability_score || 0
+            const scoreB = b.evaluation.analysis_results.final_report.viability_score || 0
+            return scoreB - scoreA
+          case "novelty":
+            const noveltyA = a.evaluation.analysis_results.novelty.novelty_score || 0
+            const noveltyB = b.evaluation.analysis_results.novelty.novelty_score || 0
+            return noveltyB - noveltyA
+          default:
+            return 0
+        }
+      } catch (error) {
+        console.error("Error sorting analyses:", error)
+        return 0
       }
     })
 
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(new Date(date))
+  const formatDate = (date: string) => {
+    try {
+      return new Intl.DateTimeFormat("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }).format(new Date(date))
+    } catch (error) {
+      return "Invalid date"
+    }
+  }
+
+  const getDaysAgo = (date: string) => {
+    try {
+      const days = Math.ceil((Date.now() - new Date(date).getTime()) / (1000 * 60 * 60 * 24))
+      if (days === 0) return "Today"
+      if (days === 1) return "Yesterday"
+      return `${days} days ago`
+    } catch (error) {
+      return "Unknown"
+    }
   }
 
   const getViabilityColor = (score: number) => {
@@ -73,6 +115,21 @@ export function HistoryPage() {
     if (score >= 60) return "text-blue-600 bg-blue-50 border-blue-200"
     if (score >= 40) return "text-yellow-600 bg-yellow-50 border-yellow-200"
     return "text-red-600 bg-red-50 border-red-200"
+  }
+
+  const getMarketPotentialColor = (potential: string) => {
+    switch (potential?.toLowerCase()) {
+      case "very high":
+        return "text-green-600"
+      case "high":
+        return "text-blue-600"
+      case "medium":
+        return "text-yellow-600"
+      case "low":
+        return "text-red-600"
+      default:
+        return "text-gray-600"
+    }
   }
 
   return (
@@ -92,6 +149,16 @@ export function HistoryPage() {
               <h1 className="text-xl font-bold text-gray-900">Analysis History</h1>
             </div>
             <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="flex items-center gap-2"
+              >
+                <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+                Refresh
+              </Button>
               <Badge variant="secondary" className="flex items-center gap-1">
                 <BarChart3 className="h-3 w-3" />
                 {analyses.length} {analyses.length === 1 ? "Analysis" : "Analyses"}
@@ -107,6 +174,21 @@ export function HistoryPage() {
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Your Idea Validations</h2>
           <p className="text-gray-600">Track and review all your startup idea analyses</p>
         </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-red-700">{error}</p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              className="mt-2"
+            >
+              Try Again
+            </Button>
+          </div>
+        )}
 
         {/* Summary Stats */}
         {!isLoading && <HistoryStats analyses={analyses} />}
@@ -162,89 +244,100 @@ export function HistoryPage() {
         ) : (
           /* Analysis Cards */
           <div className="grid gap-6">
-            {filteredAndSortedAnalyses.map((analysis) => (
-              <Card
-                key={analysis.id}
-                className="hover:shadow-lg transition-all duration-200 border-l-4 border-l-blue-500"
-              >
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1 min-w-0">
-                      <CardTitle className="text-lg line-clamp-2 mb-2">{analysis.startup_idea}</CardTitle>
-                      <CardDescription className="flex items-center gap-4 text-sm">
-                        <span className="flex items-center gap-1">
-                          <Calendar className="h-4 w-4" />
-                          {formatDate(analysis.createdAt)}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-4 w-4" />
-                          {Math.ceil((Date.now() - new Date(analysis.createdAt).getTime()) / (1000 * 60 * 60 * 24))}{" "}
-                          days ago
-                        </span>
-                      </CardDescription>
-                    </div>
-                    <div className="flex flex-col items-end gap-2 ml-4">
-                      <Badge
-                        variant="secondary"
-                        className={`flex items-center gap-1 ${getViabilityColor(
-                          analysis.analysis_results.final_report.viability_score,
-                        )}`}
-                      >
-                        <TrendingUp className="h-3 w-3" />
-                        {analysis.analysis_results.final_report.viability_score}% Viable
-                      </Badge>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                    <div className="text-center">
-                      <div className="text-lg font-semibold text-blue-600">
-                        {analysis.analysis_results.novelty.novelty_score}%
-                      </div>
-                      <div className="text-xs text-gray-600">Novelty</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-lg font-semibold text-green-600">
-                        {analysis.analysis_results?.trends?.market_potential?.overall || "N/A"}
-                      </div>
-                      <div className="text-xs text-gray-600">Market Potential</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-lg font-semibold text-purple-600">
-                        {analysis.analysis_results.saturation.saturation_score}
-                      </div>
-                      <div className="text-xs text-gray-600">Saturation</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-lg font-semibold text-orange-600">
-                        {analysis.analysis_results.competitors.benchmark_score}%
-                      </div>
-                      <div className="text-xs text-gray-600">Competitive</div>
-                    </div>
-                  </div>
+            {filteredAndSortedAnalyses.map((analysis) => {
+              const viabilityScore = analysis.evaluation.analysis_results.final_report.viability_score || 0
+              const noveltyScore = analysis.evaluation.analysis_results.novelty.novelty_score || 0
+              const marketPotential = analysis.evaluation.analysis_results.trends.market_potential.overall
+              const saturationScore = analysis.evaluation.analysis_results.saturation.saturation_score
+              const competitiveScore = analysis.evaluation.analysis_results.competitors.benchmark_score || 0
 
-                  <div className="flex justify-between items-center pt-4 border-t">
-                    {analysis.analysis_results?.final_report?.success_probability && (
-                      <div className="text-sm text-gray-600">
-                        Success Probability:{" "}
-                        <span className="font-medium">
-                          {typeof analysis.analysis_results.final_report.success_probability === "string" ||
-                           typeof analysis.analysis_results.final_report.success_probability === "number"
-                            ? analysis.analysis_results.final_report.success_probability
-                            : JSON.stringify(analysis.analysis_results.final_report.success_probability)}
-                        </span>
+              return (
+                <Card
+                  key={analysis._id}
+                  className="hover:shadow-lg transition-all duration-200 border-l-4 border-l-blue-500"
+                >
+                  <CardHeader>
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1 min-w-0">
+                        <CardTitle className="text-lg line-clamp-2 mb-2">{analysis.title}</CardTitle>
+                        <CardDescription className="flex items-center gap-4 text-sm">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-4 w-4" />
+                            {formatDate(analysis.createdAt)}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-4 w-4" />
+                            {getDaysAgo(analysis.createdAt)}
+                          </span>
+                        </CardDescription>
                       </div>
-                    )}
-                    <Link href="/">
-                      <Button variant="outline" size="sm" onClick={() => handleViewReport(analysis)}>
-                        View Full Report
-                      </Button>
-                    </Link>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                      <div className="flex flex-col items-end gap-2 ml-4">
+                        <Badge
+                          variant="secondary"
+                          className={`flex items-center gap-1 ${getViabilityColor(viabilityScore)}`}
+                        >
+                          <TrendingUp className="h-3 w-3" />
+                          {viabilityScore}% Viable
+                        </Badge>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                      <div className="text-center">
+                        <div className="text-lg font-semibold text-blue-600">
+                          {noveltyScore}%
+                        </div>
+                        <div className="text-xs text-gray-600">Novelty</div>
+                      </div>
+                      <div className="text-center">
+                        <div className={`text-lg font-semibold ${getMarketPotentialColor(marketPotential)}`}>
+                          {marketPotential}
+                        </div>
+                        <div className="text-xs text-gray-600">Market Potential</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-lg font-semibold text-purple-600">
+                          {saturationScore}
+                        </div>
+                        <div className="text-xs text-gray-600">Saturation</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-lg font-semibold text-orange-600">
+                          {competitiveScore}%
+                        </div>
+                        <div className="text-xs text-gray-600">Competitive</div>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-between items-center pt-4 border-t">
+                      {analysis.evaluation.analysis_results.final_report.success_probability && (
+                        <div className="text-sm text-gray-600">
+                          Success Probability:{" "}
+                          <span className="font-medium">
+                            {typeof analysis.evaluation.analysis_results.final_report.success_probability === "string" ||
+                             typeof analysis.evaluation.analysis_results.final_report.success_probability === "number"
+                              ? analysis.evaluation.analysis_results.final_report.success_probability
+                              : JSON.stringify(analysis.evaluation.analysis_results.final_report.success_probability)}
+                          </span>
+                        </div>
+                      )}
+                      <Link href="/">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => handleViewReport(analysis)}
+                          className="flex items-center gap-2"
+                        >
+                          <Eye className="h-4 w-4" />
+                          View Full Report
+                        </Button>
+                      </Link>
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })}
           </div>
         )}
       </main>

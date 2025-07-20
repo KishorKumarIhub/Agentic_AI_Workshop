@@ -39,11 +39,7 @@ export interface IdeaValidationResponse {
     user: string
     title: string
     evaluation: {
-      success: boolean
-      data: {
-        startup_idea: string
-        analysis_results: any
-      }
+      analysis_results: any
     }
     _id: string
     createdAt: string
@@ -57,11 +53,7 @@ export interface UserIdea {
   user: string
   title: string
   evaluation: {
-    success: boolean
-    data: {
-      startup_idea: string
-      analysis_results: any
-    }
+    analysis_results: any
   }
   createdAt: string
   __v: number
